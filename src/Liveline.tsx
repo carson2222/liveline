@@ -58,6 +58,7 @@ export function Liveline({
   onModeChange,
   onSeriesToggle,
   seriesToggleCompact = false,
+  lineWidth,
   className,
   style,
 }: LivelineProps) {
@@ -74,7 +75,11 @@ export function Liveline({
   const lastSeriesPropRef = useRef(seriesProp)
   if (seriesProp && seriesProp.length > 0) lastSeriesPropRef.current = seriesProp
 
-  const palette = useMemo(() => resolveTheme(color, theme), [color, theme])
+  const palette = useMemo(() => {
+    const p = resolveTheme(color, theme)
+    if (lineWidth != null) p.lineWidth = lineWidth
+    return p
+  }, [color, theme, lineWidth])
   const isDark = theme === 'dark'
   const isMultiSeries = seriesProp != null && seriesProp.length > 0
   const showSeriesToggle = (lastSeriesPropRef.current?.length ?? 0) > 1

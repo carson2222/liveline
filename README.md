@@ -54,6 +54,7 @@ The component fills its parent container. Set a height on the parent. Pass `data
 | `badgeTail` | `boolean` | `true` | Pointed tail on badge pill |
 | `fill` | `boolean` | `true` | Gradient under the curve |
 | `pulse` | `boolean` | `true` | Pulsing ring on live dot |
+| `lineWidth` | `number` | `2` | Stroke width of the main line in pixels |
 
 **Features**
 
@@ -133,7 +134,7 @@ When `loading` flips to `false` with data present, the loading line morphs into 
 | `formatValue` | `(v: number) => string` | `v.toFixed(2)` | Value label formatter |
 | `formatTime` | `(t: number) => string` | `HH:MM:SS` | Time axis formatter |
 | `lerpSpeed` | `number` | `0.08` | Interpolation speed (0–1) |
-| `padding` | `Padding` | `{ top: 12, right: 80, bottom: 28, left: 12 }` | Chart padding override |
+| `padding` | `Padding` | `{ top: 12, right: auto, bottom: 28, left: 12 }` | Chart padding override (`right` is 80/54/12 based on badge/grid) |
 | `onHover` | `(point \| null) => void` | — | Hover callback with `{ time, value, x, y }` |
 | `cursor` | `string` | `'crosshair'` | CSS cursor on canvas hover |
 | `className` | `string` | — | Container class |
