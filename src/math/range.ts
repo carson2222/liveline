@@ -7,7 +7,7 @@ import type { LivelinePoint } from '../types'
 export function computeRange(
   visible: LivelinePoint[],
   currentValue: number,
-  referenceValue?: number,
+  referenceValue?: number | number[],
   exaggerate?: boolean,
 ): { min: number; max: number } {
   let targetMin = Infinity
@@ -21,10 +21,13 @@ export function computeRange(
   if (currentValue < targetMin) targetMin = currentValue
   if (currentValue > targetMax) targetMax = currentValue
 
-  // Include reference line so it's always visible
+  // Include reference line(s) so they're always visible
   if (referenceValue !== undefined) {
-    if (referenceValue < targetMin) targetMin = referenceValue
-    if (referenceValue > targetMax) targetMax = referenceValue
+    const refs = Array.isArray(referenceValue) ? referenceValue : [referenceValue]
+    for (const rv of refs) {
+      if (rv < targetMin) targetMin = rv
+      if (rv > targetMax) targetMax = rv
+    }
   }
 
   const rawRange = targetMax - targetMin

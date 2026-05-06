@@ -13,6 +13,7 @@ export type BadgeVariant = 'default' | 'minimal'
 export interface ReferenceLine {
   value: number
   label?: string
+  color?: string
 }
 
 export interface HoverPoint {
@@ -100,6 +101,7 @@ export interface LivelineProps {
 
   // Optional
   referenceLine?: ReferenceLine
+  referenceLines?: ReferenceLine[]
   formatValue?: (v: number) => string
   formatTime?: (t: number) => string
   lerpSpeed?: number

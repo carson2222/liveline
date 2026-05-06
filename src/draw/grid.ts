@@ -59,7 +59,7 @@ export function drawGrid(
   const pxPerUnit = chartH / valRange
 
   // Coarse interval: always-visible anchor labels
-  const coarse = pickInterval(valRange, pxPerUnit, 36, state.interval)
+  const coarse = pickInterval(valRange, pxPerUnit, 60, state.interval)
   state.interval = coarse
 
   // Fine interval: fills the gaps between coarse labels

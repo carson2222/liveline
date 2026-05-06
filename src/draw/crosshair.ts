@@ -53,7 +53,7 @@ export function drawCrosshair(
 
   const valueText = formatValue(hoverValue)
   const timeText = formatTime(hoverTime)
-  const separator = '  ·  '
+  const separator = '  /  '
 
   ctx.save()
   ctx.globalAlpha = scrubOpacity
@@ -151,7 +151,7 @@ export function drawMultiCrosshair(
   ctx.textAlign = 'left'
 
   const timeText = formatTime(hoverTime)
-  const sep = '  ·  '
+  const sep = '  /  '
   const dotInline = ' '  // spacing for inline colored dot
 
   // Build segments: [ { text, color } ... ]

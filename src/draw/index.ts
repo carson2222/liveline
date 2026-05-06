@@ -38,6 +38,7 @@ export interface DrawOptions {
   showPulse: boolean
   showFill: boolean
   referenceLine?: ReferenceLine
+  referenceLines?: ReferenceLine[]
   hoverX: number | null
   hoverValue: number | null
   hoverTime: number | null
@@ -98,11 +99,12 @@ export function drawFrame(
     return t * t * (3 - 2 * t)
   }
 
-  // 1. Reference line (behind everything) — fades with reveal
-  if (opts.referenceLine && reveal > 0.01) {
+  // 1. Reference lines (behind everything) — fades with reveal
+  const allRefs = opts.referenceLines ?? (opts.referenceLine ? [opts.referenceLine] : [])
+  if (allRefs.length > 0 && reveal > 0.01) {
     ctx.save()
     if (reveal < 1) ctx.globalAlpha = reveal
-    drawReferenceLine(ctx, layout, palette, opts.referenceLine)
+    for (const ref of allRefs) drawReferenceLine(ctx, layout, palette, ref, allRefs.length > 1)
     ctx.restore()
   }
 
@@ -246,6 +248,7 @@ export interface MultiSeriesDrawOptions {
   showGrid: boolean
   showPulse: boolean
   referenceLine?: ReferenceLine
+  referenceLines?: ReferenceLine[]
   hoverX: number | null
   hoverTime: number | null
   hoverEntries: MultiSeriesHoverEntry[]
@@ -283,11 +286,12 @@ export function drawMultiFrame(
     return t * t * (3 - 2 * t)
   }
 
-  // 1. Reference line
-  if (opts.referenceLine && reveal > 0.01) {
+  // 1. Reference lines
+  const allRefs = opts.referenceLines ?? (opts.referenceLine ? [opts.referenceLine] : [])
+  if (allRefs.length > 0 && reveal > 0.01) {
     ctx.save()
     if (reveal < 1) ctx.globalAlpha = reveal
-    drawReferenceLine(ctx, layout, palette, opts.referenceLine)
+    for (const ref of allRefs) drawReferenceLine(ctx, layout, palette, ref, allRefs.length > 1)
     ctx.restore()
   }
 
