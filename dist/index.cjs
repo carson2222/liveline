@@ -1504,7 +1504,7 @@ function drawFrame(ctx, layout, palette, opts) {
   if (allRefs.length > 0 && reveal > 0.01) {
     ctx.save();
     if (reveal < 1) ctx.globalAlpha = reveal;
-    for (const ref of allRefs) drawReferenceLine(ctx, layout, palette, ref, allRefs.length > 1);
+    for (const ref of allRefs) drawReferenceLine(ctx, layout, palette, ref, false);
     ctx.restore();
   }
   if (opts.showGrid) {
@@ -1632,7 +1632,7 @@ function drawMultiFrame(ctx, layout, opts) {
   if (allRefs.length > 0 && reveal > 0.01) {
     ctx.save();
     if (reveal < 1) ctx.globalAlpha = reveal;
-    for (const ref of allRefs) drawReferenceLine(ctx, layout, palette, ref, allRefs.length > 1);
+    for (const ref of allRefs) drawReferenceLine(ctx, layout, palette, ref, false);
     ctx.restore();
   }
   if (opts.showGrid) {
