@@ -1980,7 +1980,7 @@ function refValues(cfg) {
   if (cfg.referenceLines && cfg.referenceLines.length > 0) {
     return cfg.referenceLines.map((r) => r.value);
   }
-  return refValues(cfg);
+  return cfg.referenceLine?.value;
 }
 var SVG_NS = "http://www.w3.org/2000/svg";
 var MAX_DELTA_MS = 50;

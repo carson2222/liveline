@@ -8,7 +8,7 @@ function refValues(cfg: { referenceLine?: ReferenceLine; referenceLines?: Refere
   if (cfg.referenceLines && cfg.referenceLines.length > 0) {
     return cfg.referenceLines.map(r => r.value)
   }
-  return refValues(cfg)
+  return cfg.referenceLine?.value
 }
 import { detectMomentum } from './math/momentum'
 import { interpolateAtTime } from './math/interpolate'
