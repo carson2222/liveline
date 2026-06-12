@@ -121,6 +121,7 @@ export interface LivelineProps {
   lineValue?: number              // Current tick value for density transition
   onModeChange?: (mode: 'line' | 'candle') => void  // Built-in toggle callback
   onSeriesToggle?: (id: string, visible: boolean) => void  // Multi-series toggle callback
+  seriesToggle?: boolean         // Show the built-in series toggle pills (default: true)
   seriesToggleCompact?: boolean  // Show only colored dots (no labels) in series toggle (default: false)
 
   className?: string

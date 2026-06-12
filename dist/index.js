@@ -672,26 +672,46 @@ function drawMultiCrosshair(ctx, layout, palette, hoverX, hoverTime, entries, fo
   const timeText = formatTime(hoverTime);
   const sep = "  /  ";
   const dotInline = " ";
-  const segments = [
-    { text: timeText, color: palette.gridLabel }
-  ];
-  for (const e of entries) {
-    segments.push({ text: sep, color: palette.gridLabel });
-    segments.push({ text: dotInline, color: e.color, isDot: true });
-    const label = e.label ? `${e.label} ` : "";
-    if (label) segments.push({ text: label, color: palette.gridLabel });
-    segments.push({ text: formatValue(e.value), color: palette.tooltipText });
-  }
-  let totalW = 0;
-  const segWidths = [];
-  for (const seg of segments) {
-    const w = seg.isDot ? 12 : ctx.measureText(seg.text).width;
-    segWidths.push(w);
-    totalW += w;
-  }
-  let tx = hoverX - totalW / 2;
+  const buildSegments = (items, withLabels, omitted) => {
+    const segs = [{ text: timeText, color: palette.gridLabel }];
+    for (const e of items) {
+      segs.push({ text: sep, color: palette.gridLabel });
+      segs.push({ text: dotInline, color: e.color, isDot: true });
+      if (withLabels && e.label) segs.push({ text: `${e.label} `, color: palette.gridLabel });
+      segs.push({ text: formatValue(e.value), color: palette.tooltipText });
+    }
+    if (omitted > 0) segs.push({ text: `  +${omitted}`, color: palette.gridLabel });
+    return segs;
+  };
+  const measureSegs = (segs) => {
+    let w = 0;
+    for (const seg of segs) w += seg.isDot ? 12 : ctx.measureText(seg.text).width;
+    return w;
+  };
   const minX = pad.left + 4;
   const dotRightEdge = liveDotX != null ? liveDotX + 7 : layout.w - pad.right;
+  const availW = dotRightEdge - minX;
+  let segments = buildSegments(entries, true, 0);
+  let totalW = measureSegs(segments);
+  if (totalW > availW) {
+    segments = buildSegments(entries, false, 0);
+    totalW = measureSegs(segments);
+  }
+  if (totalW > availW && entries.length > 1) {
+    const byValueDesc = [...entries].sort((a, b) => b.value - a.value);
+    for (let keep = entries.length - 1; keep >= 1; keep--) {
+      const kept = new Set(byValueDesc.slice(0, keep));
+      const items = entries.filter((e) => kept.has(e));
+      segments = buildSegments(items, false, entries.length - keep);
+      totalW = measureSegs(segments);
+      if (totalW <= availW) break;
+    }
+  }
+  const segWidths = [];
+  for (const seg of segments) {
+    segWidths.push(seg.isDot ? 12 : ctx.measureText(seg.text).width);
+  }
+  let tx = hoverX - totalW / 2;
   const maxX = dotRightEdge - totalW;
   if (tx < minX) tx = minX;
   if (tx > maxX) tx = maxX;
@@ -3567,6 +3587,7 @@ function Liveline({
   lineValue,
   onModeChange,
   onSeriesToggle,
+  seriesToggle = true,
   seriesToggleCompact = false,
   lineWidth,
   className,
@@ -3591,7 +3612,7 @@ function Liveline({
   }, [color, theme, lineWidth]);
   const isDark = theme === "dark";
   const isMultiSeries = seriesProp != null && seriesProp.length > 0;
-  const showSeriesToggle = (lastSeriesPropRef.current?.length ?? 0) > 1;
+  const showSeriesToggle = seriesToggle && (lastSeriesPropRef.current?.length ?? 0) > 1;
   const seriesPalettes = useMemo(() => {
     if (!seriesProp || seriesProp.length === 0) return null;
     return resolveSeriesPalettes(seriesProp, theme);

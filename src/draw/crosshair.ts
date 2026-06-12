@@ -144,7 +144,10 @@ export function drawMultiCrosshair(
   if (scrubOpacity < 0.1 || layout.w < 300) return
 
   // Inline text at top — same style as single-series crosshair
-  // Format: "TIME  ·  ● Label Value  ·  ● Label Value"
+  // Format: "TIME  /  ● Label Value  /  ● Label Value"
+  // Fit-aware: when the full legend overflows the chart width it degrades
+  // gracefully: drop labels (dot + value only), then drop lowest-value
+  // entries and append a "+N" counter.
   ctx.save()
   ctx.globalAlpha = scrubOpacity
   ctx.font = '400 13px "SF Mono", Menlo, monospace'
@@ -154,34 +157,58 @@ export function drawMultiCrosshair(
   const sep = '  /  '
   const dotInline = ' '  // spacing for inline colored dot
 
-  // Build segments: [ { text, color } ... ]
   type Seg = { text: string; color: string; isDot?: boolean }
-  const segments: Seg[] = [
-    { text: timeText, color: palette.gridLabel },
-  ]
-  for (const e of entries) {
-    segments.push({ text: sep, color: palette.gridLabel })
-    // Inline dot (drawn as circle, not text)
-    segments.push({ text: dotInline, color: e.color, isDot: true })
-    const label = e.label ? `${e.label} ` : ''
-    if (label) segments.push({ text: label, color: palette.gridLabel })
-    segments.push({ text: formatValue(e.value), color: palette.tooltipText })
+  const buildSegments = (items: MultiSeriesHoverEntry[], withLabels: boolean, omitted: number): Seg[] => {
+    const segs: Seg[] = [{ text: timeText, color: palette.gridLabel }]
+    for (const e of items) {
+      segs.push({ text: sep, color: palette.gridLabel })
+      // Inline dot (drawn as circle, not text)
+      segs.push({ text: dotInline, color: e.color, isDot: true })
+      if (withLabels && e.label) segs.push({ text: `${e.label} `, color: palette.gridLabel })
+      segs.push({ text: formatValue(e.value), color: palette.tooltipText })
+    }
+    if (omitted > 0) segs.push({ text: `  +${omitted}`, color: palette.gridLabel })
+    return segs
+  }
+  const measureSegs = (segs: Seg[]): number => {
+    let w = 0
+    for (const seg of segs) w += seg.isDot ? 12 : ctx.measureText(seg.text).width
+    return w
   }
 
-  // Measure total width
-  let totalW = 0
+  const minX = pad.left + 4
+  const dotRightEdge = liveDotX != null ? liveDotX + 7 : layout.w - pad.right
+  const availW = dotRightEdge - minX
+
+  let segments = buildSegments(entries, true, 0)
+  let totalW = measureSegs(segments)
+
+  // Pass 2: drop labels, keep colored dots + values
+  if (totalW > availW) {
+    segments = buildSegments(entries, false, 0)
+    totalW = measureSegs(segments)
+  }
+
+  // Pass 3: drop lowest-value entries until it fits, show "+N"
+  if (totalW > availW && entries.length > 1) {
+    const byValueDesc = [...entries].sort((a, b) => b.value - a.value)
+    for (let keep = entries.length - 1; keep >= 1; keep--) {
+      const kept = new Set(byValueDesc.slice(0, keep))
+      const items = entries.filter((e) => kept.has(e))
+      segments = buildSegments(items, false, entries.length - keep)
+      totalW = measureSegs(segments)
+      if (totalW <= availW) break
+    }
+  }
+
   const segWidths: number[] = []
   for (const seg of segments) {
-    const w = seg.isDot ? 12 : ctx.measureText(seg.text).width
-    segWidths.push(w)
-    totalW += w
+    segWidths.push(seg.isDot ? 12 : ctx.measureText(seg.text).width)
   }
 
   // Position — center on crosshair, clamp to chart bounds
   // Right edge of tooltip aligns with the right edge of live dots (matching single-series)
   let tx = hoverX - totalW / 2
-  const minX = pad.left + 4
-  const dotRightEdge = liveDotX != null ? liveDotX + 7 : layout.w - pad.right
   const maxX = dotRightEdge - totalW
   if (tx < minX) tx = minX
   if (tx > maxX) tx = maxX
