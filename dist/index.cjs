@@ -691,84 +691,100 @@ function drawMultiCrosshair(ctx, layout, palette, hoverX, hoverTime, entries, fo
       ctx.fill();
     }
   }
-  if (scrubOpacity < 0.1 || layout.w < 300) return;
+  if (scrubOpacity < 0.1 || layout.w < 200) return;
+  void tooltipY;
+  void tooltipOutline;
+  void liveDotX;
+  const PILL_H = 22;
+  const PILL_GAP = 3;
+  const PILL_PAD_X = 8;
+  const PILL_OFFSET = 12;
+  const BAR_W = 3;
+  const BAR_H = 12;
+  const MAX_LABEL_PX = 110;
+  const labelFont = "500 12px system-ui, -apple-system, sans-serif";
+  const valueFont = '600 12px "SF Mono", Menlo, monospace';
+  const timeFont = '400 12px "SF Mono", Menlo, monospace';
   ctx.save();
   ctx.globalAlpha = scrubOpacity;
-  ctx.font = '400 13px "SF Mono", Menlo, monospace';
   ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
   const timeText = formatTime(hoverTime);
-  const sep = "  /  ";
-  const dotInline = " ";
-  const buildSegments = (items, withLabels, omitted) => {
-    const segs = [{ text: timeText, color: palette.gridLabel }];
-    for (const e of items) {
-      segs.push({ text: sep, color: palette.gridLabel });
-      segs.push({ text: dotInline, color: e.color, isDot: true });
-      if (withLabels && e.label) segs.push({ text: `${e.label} `, color: palette.gridLabel });
-      segs.push({ text: formatValue(e.value), color: palette.tooltipText });
+  ctx.font = timeFont;
+  const timeW = ctx.measureText(timeText).width;
+  let timeX = hoverX - timeW / 2;
+  if (timeX < pad.left + 4) timeX = pad.left + 4;
+  if (timeX > layout.w - pad.right - timeW - 4) timeX = layout.w - pad.right - timeW - 4;
+  const timeY = pad.top >= 14 ? pad.top - 6 : pad.top + 8;
+  ctx.fillStyle = palette.gridLabel;
+  ctx.fillText(timeText, timeX, timeY);
+  const truncateLabel = (text) => {
+    ctx.font = labelFont;
+    if (ctx.measureText(text).width <= MAX_LABEL_PX) return text;
+    let out = text;
+    while (out.length > 1 && ctx.measureText(`${out}\u2026`).width > MAX_LABEL_PX) {
+      out = out.slice(0, -1);
     }
-    if (omitted > 0) segs.push({ text: `  +${omitted}`, color: palette.gridLabel });
-    return segs;
+    return `${out}\u2026`;
   };
-  const measureSegs = (segs) => {
-    let w = 0;
-    for (const seg of segs) w += seg.isDot ? 12 : ctx.measureText(seg.text).width;
-    return w;
-  };
-  const minX = pad.left + 4;
-  const dotRightEdge = liveDotX != null ? liveDotX + 7 : layout.w - pad.right;
-  const availW = dotRightEdge - minX;
-  let segments = buildSegments(entries, true, 0);
-  let totalW = measureSegs(segments);
-  if (totalW > availW) {
-    segments = buildSegments(entries, false, 0);
-    totalW = measureSegs(segments);
+  const pills = entries.map((e) => {
+    const label = e.label ? truncateLabel(e.label) : "";
+    const valueText = formatValue(e.value);
+    ctx.font = labelFont;
+    const labelW = label ? ctx.measureText(label).width : 0;
+    ctx.font = valueFont;
+    const valueW = ctx.measureText(valueText).width;
+    const w = PILL_PAD_X + BAR_W + 6 + (label ? labelW + 6 : 0) + valueW + PILL_PAD_X;
+    return { label, valueText, color: e.color, y: toY(e.value), labelW, valueW, w };
+  });
+  pills.sort((a, b) => a.y - b.y);
+  const minY = pad.top + PILL_H / 2 + 2;
+  const maxY = h - pad.bottom - PILL_H / 2 - 2;
+  let cursor = minY;
+  for (const p of pills) {
+    p.y = Math.min(Math.max(p.y, cursor), maxY);
+    cursor = p.y + PILL_H + PILL_GAP;
   }
-  if (totalW > availW && entries.length > 1) {
-    const byValueDesc = [...entries].sort((a, b) => b.value - a.value);
-    for (let keep = entries.length - 1; keep >= 1; keep--) {
-      const kept = new Set(byValueDesc.slice(0, keep));
-      const items = entries.filter((e) => kept.has(e));
-      segments = buildSegments(items, false, entries.length - keep);
-      totalW = measureSegs(segments);
-      if (totalW <= availW) break;
-    }
+  let ceiling = maxY;
+  for (let i = pills.length - 1; i >= 0; i--) {
+    const p = pills[i];
+    p.y = Math.min(p.y, ceiling);
+    ceiling = p.y - PILL_H - PILL_GAP;
   }
-  const segWidths = [];
-  for (const seg of segments) {
-    segWidths.push(seg.isDot ? 12 : ctx.measureText(seg.text).width);
-  }
-  let tx = hoverX - totalW / 2;
-  const maxX = dotRightEdge - totalW;
-  if (tx < minX) tx = minX;
-  if (tx > maxX) tx = maxX;
-  const ty = pad.top + (tooltipY ?? 14) + 10;
-  if (tooltipOutline !== false) {
-    ctx.strokeStyle = palette.tooltipBg;
-    ctx.lineWidth = 3;
-    ctx.lineJoin = "round";
-    let ox2 = tx;
-    for (let i = 0; i < segments.length; i++) {
-      const seg = segments[i];
-      if (!seg.isDot) {
-        ctx.strokeText(seg.text, ox2, ty);
-      }
-      ox2 += segWidths[i];
-    }
-  }
-  let ox = tx;
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    if (seg.isDot) {
-      ctx.beginPath();
-      ctx.arc(ox + 4, ty - 4, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = seg.color;
-      ctx.fill();
+  const maxPillW = pills.reduce((m, p) => Math.max(m, p.w), 0);
+  const flipRight = hoverX - PILL_OFFSET - maxPillW < pad.left + 2;
+  for (const p of pills) {
+    const px = flipRight ? hoverX + PILL_OFFSET : hoverX - PILL_OFFSET - p.w;
+    const py = p.y - PILL_H / 2;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(px, py, p.w, PILL_H, 6);
     } else {
-      ctx.fillStyle = seg.color;
-      ctx.fillText(seg.text, ox, ty);
+      ctx.rect(px, py, p.w, PILL_H);
     }
-    ox += segWidths[i];
+    ctx.fillStyle = palette.tooltipBg;
+    ctx.fill();
+    ctx.strokeStyle = palette.gridLine;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(px + PILL_PAD_X, p.y - BAR_H / 2, BAR_W, BAR_H, 1.5);
+    } else {
+      ctx.rect(px + PILL_PAD_X, p.y - BAR_H / 2, BAR_W, BAR_H);
+    }
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    let textX = px + PILL_PAD_X + BAR_W + 6;
+    if (p.label) {
+      ctx.font = labelFont;
+      ctx.fillStyle = palette.tooltipText;
+      ctx.fillText(p.label, textX, p.y);
+      textX += p.labelW + 6;
+    }
+    ctx.font = valueFont;
+    ctx.fillStyle = palette.tooltipText;
+    ctx.fillText(p.valueText, textX, p.y);
   }
   ctx.restore();
 }
