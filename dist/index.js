@@ -99,7 +99,7 @@ function lerp(current, target, speed, dt = 16.67) {
 }
 
 // src/math/range.ts
-function computeRange(visible, currentValue, referenceValue, exaggerate) {
+function computeRange(visible, currentValue, referenceValue, exaggerate, minRangeOverride) {
   let targetMin = Infinity;
   let targetMax = -Infinity;
   for (const p of visible) {
@@ -117,7 +117,8 @@ function computeRange(visible, currentValue, referenceValue, exaggerate) {
   }
   const rawRange = targetMax - targetMin;
   const marginFactor = exaggerate ? 0.01 : 0.12;
-  const minRange = rawRange * (exaggerate ? 0.02 : 0.1) || (exaggerate ? 0.04 : 0.4);
+  const proportional = rawRange * (exaggerate ? 0.02 : 0.1);
+  const minRange = minRangeOverride != null ? Math.max(proportional, minRangeOverride) : proportional || (exaggerate ? 0.04 : 0.4);
   if (rawRange < minRange) {
     const mid = (targetMin + targetMax) / 2;
     targetMin = mid - minRange / 2;
@@ -2072,7 +2073,7 @@ function updateWindowTransition(cfg, wt, displayWindow, displayMin, displayMax, 
       }
     }
     if (targetVisible.length > 0) {
-      const targetRange = computeRange(targetVisible, smoothValue, refValues(cfg), cfg.exaggerate);
+      const targetRange = computeRange(targetVisible, smoothValue, refValues(cfg), cfg.exaggerate, cfg.minRange);
       wt.rangeToMin = targetRange.min;
       wt.rangeToMax = targetRange.max;
     }
@@ -3188,7 +3189,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
             if (p.time >= targetLeftEdge - 2 && p.time <= targetRightEdge) targetVisible.push(p);
           }
           if (targetVisible.length > 0) {
-            const range = computeRange(targetVisible, sv, refValues(cfg), cfg.exaggerate);
+            const range = computeRange(targetVisible, sv, refValues(cfg), cfg.exaggerate, cfg.minRange);
             if (range.min < unionMin) unionMin = range.min;
             if (range.max > unionMax) unionMax = range.max;
           }
@@ -3219,7 +3220,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
         const alpha = seriesAlphas.get(s.id) ?? 1;
         if (visible.length >= 2) {
           if (alpha > 0.01) {
-            const range = computeRange(visible, sv, refValues(cfg), cfg.exaggerate);
+            const range = computeRange(visible, sv, refValues(cfg), cfg.exaggerate, cfg.minRange);
             if (range.min < globalMin) globalMin = range.min;
             if (range.max > globalMax) globalMax = range.max;
           }
@@ -3407,7 +3408,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
         rafRef.current = requestAnimationFrame(draw);
         return;
       }
-      const computedRange = computeRange(visible, smoothValue, refValues(cfg), cfg.exaggerate);
+      const computedRange = computeRange(visible, smoothValue, refValues(cfg), cfg.exaggerate, cfg.minRange);
       const isWindowTransitioning = transition.startMs > 0;
       const rangeResult = updateRange(
         computedRange,
@@ -3574,6 +3575,7 @@ function Liveline({
   paused = false,
   emptyText,
   exaggerate = false,
+  minRange,
   degen: degenProp,
   badgeTail = true,
   badgeVariant = "default",
@@ -3722,6 +3724,7 @@ function Liveline({
     showPulse: pulse,
     scrub,
     exaggerate,
+    minRange,
     degenOptions: isMultiSeries ? void 0 : degenOptions,
     badgeTail,
     badgeVariant,

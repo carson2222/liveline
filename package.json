@@ -1,6 +1,6 @@
 {
   "name": "liveline",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "description": "Real-time animated charts for React — line, candlestick, and multi-series modes",
   "keywords": [

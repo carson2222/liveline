@@ -69,6 +69,33 @@ describe('computeRange', () => {
     const mid = (min + max) / 2
     expect(mid).toBeCloseTo(50, 1)
   })
+
+  it('minRange override replaces the flat-data floor', () => {
+    const { min, max } = computeRange(pts([0.5, 0.5, 0.5]), 0.5, undefined, false, 0.1)
+    expect(max - min).toBeCloseTo(0.1, 5)
+    expect((min + max) / 2).toBeCloseTo(0.5, 5)
+  })
+
+  it('minRange override is a true floor — small moves never collapse below it', () => {
+    // default behavior: flat=0.4 floor, then rawRange 0.01 → ~0.0124 (huge zoom)
+    const flat = computeRange(pts([0.5, 0.5]), 0.5)
+    const moving = computeRange(pts([0.5, 0.51]), 0.51)
+    expect(flat.max - flat.min).toBeCloseTo(0.4, 5)
+    expect(moving.max - moving.min).toBeLessThan(0.02)
+
+    // with override: both stay at the floor — continuous, no breathing
+    const flatO = computeRange(pts([0.5, 0.5]), 0.5, undefined, false, 0.1)
+    const movingO = computeRange(pts([0.5, 0.51]), 0.51, undefined, false, 0.1)
+    expect(flatO.max - flatO.min).toBeCloseTo(0.1, 5)
+    expect(movingO.max - movingO.min).toBeCloseTo(0.1, 5)
+  })
+
+  it('minRange override defers to margin path when data range exceeds it', () => {
+    const { min, max } = computeRange(pts([0.2, 0.8]), 0.5, undefined, false, 0.1)
+    expect(max - min).toBeGreaterThan(0.6) // 0.6 raw + 12% margins
+    expect(min).toBeLessThan(0.2)
+    expect(max).toBeGreaterThan(0.8)
+  })
 })
 
 // -- detectMomentum --

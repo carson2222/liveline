@@ -79,6 +79,7 @@ export interface LivelineProps {
   emptyText?: string        // Text shown in the empty state (default: 'No data to display')
   scrub?: boolean           // Enable crosshair scrubbing on hover (default: true)
   exaggerate?: boolean      // Tight Y-axis range — small moves fill chart height (default: false)
+  minRange?: number         // Absolute minimum Y-range floor — for bounded domains like probabilities, e.g. 0.1 (default: built-in 0.4 / 0.04 flat-data floor)
   showValue?: boolean       // Show live value as DOM text overlay (default: false)
   valueMomentumColor?: boolean // Color the value text by momentum — green/red (default: false)
   degen?: boolean | DegenOptions  // Degen mode — burst particles + chart shake on momentum swings (default: false)
